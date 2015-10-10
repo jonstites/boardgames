@@ -30,7 +30,13 @@ bgg_search_url = "https://boardgamegeek.com/geeksearch.php?action=search&objectt
 def main(games, additional_notes=None, output="/dev/stdout"):
     notes = get_notes(additional_notes)
     with open(output, 'w') as handle:
+        print("Suggested Games: ", file=handle)
+        template = "{0}.\t{1}"
+        for i, game in enumerate(games):
+            print(template.format(i+1, game), file=handle)
+
         for game in games:
+            new_section(handle)
             game_format = game.replace(" ", "+")
             query = bgg_search_url.format(game_format)
             html_source = open_url(query)
@@ -43,6 +49,9 @@ def main(games, additional_notes=None, output="/dev/stdout"):
             output_stats(
                 game, player_num, play_time, rank, description, notes, 
                 top_url, handle)
+
+def new_section(handle):
+    print("\n", "-"*70, "\n", file=handle)
 
 def get_notes(additional_notes):
     d = {}
@@ -63,7 +72,6 @@ def output_stats(
     print(template.format(game, "Play time", play_time), file=handle)
     print(template.format(game, "Description", description), file=handle)
     print(template.format(game, "Additional Notes", notes.get(game, None)), file=handle)
-    print(file=handle)
 
 def get_game_page(top_match):
     html_source = open_url(top_match)
@@ -79,7 +87,8 @@ def get_game_info(game_response):
 def get_description(game_response):
     for meta in game_response.find_all("meta"):
         if meta["name"] == "description":
-            return meta["content"]
+            soup = BeautifulSoup(meta["content"], 'html.parser').get_text()
+            return soup.encode("UTF-8").decode("UTF-8").encode("ascii", "ignore").decode()
 
 def get_rank(game_response):
     for data_entry in game_response.find_all("td"):
